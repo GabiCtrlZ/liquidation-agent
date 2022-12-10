@@ -17,11 +17,7 @@
   },
   "scripts": {
     "test": "hardhat test",
-    "test:staging": "hardhat test --network goerli",
-    "lint": "solhint 'contracts/**/*.sol'",
-    "lint:fix": "solhint 'contracts/**/*.sol' --fix",
-    "format": "prettier --write .",
-    "coverage": "hardhat coverage"
+    "run-liquidator-agent": "hardhat run scripts/runLiquidatorAgent.js"
   },
   "dependencies": {
     "@aave/protocol-v2": "^1.0.1",

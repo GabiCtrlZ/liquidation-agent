@@ -174,6 +174,7 @@ contract LiquidatorAgent is FlashLoanReceiverBase {
       if ((userConfig.data >> (reserveIndex * 2 + 1)) & 1 != 0) {
         // this is the calculation used in isUsingAsCollateral function
         return reserveIndex;
+        // TODO: return an array instead of all reserveIndex that serve as collateral instead of stopping the function here
       }
     }
     return uint256(-1);

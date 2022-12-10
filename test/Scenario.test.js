@@ -12,7 +12,6 @@ const {
   deployLiquidatorAgent,
   getAccountReadyForLiquidation,
   liquidateAccount,
-  findUserCurrentReserve,
   findDebtOfUser,
   findUserCollateral,
 } = require("../src/liquidatorAgent")
@@ -92,11 +91,11 @@ describe("Run Scenario", () => {
       .connect(impersonatedAaveOwner)
       .setPriceOracle(oracle.address)
   })
-  it("Scenario1 - changing current reserve asset price to trigger liquidation eligibility", async () => {
+  it("Scenario1 - changing collateral asset price to trigger liquidation eligibility", async () => {
     // first check
     assert((await getAccountReadyForLiquidation(liquidatorAgent)).length === 0) // no accounts ready for liquidation
 
-    const currentReserve = await findUserCurrentReserve(
+    const collateral = await findUserCollateral(
       liquidatorAgent,
       reserves,
       ACCOUNTS_TO_MONITOR[1]
@@ -108,7 +107,7 @@ describe("Run Scenario", () => {
     )
 
     // make user allegeable for liquidation
-    await oracle.setAssetPrice(currentReserve, "100000000000000") // asset price is configurable
+    await oracle.setAssetPrice(collateral, "100000000000000") // asset price is configurable, driving the collateral price down results in liquidation
     assert((await getAccountReadyForLiquidation(liquidatorAgent)).length === 1) // after changing the asset price, the second account is ready to be liquidated
 
     // this funding is only needed in tests since in actual liquidation the swap will yield more revenue to return the flash loan
@@ -133,7 +132,7 @@ describe("Run Scenario", () => {
     assert(BNtoNum(debtAfter[0]) < BNtoNum(debt[0])) // user have been liquidated properly
   })
 
-  it("Scenario2 - changing collateral price to trigger liquidation eligibility", async () => {
+  it("Scenario2 - changing debt price to trigger liquidation eligibility", async () => {
     // first check
     assert((await getAccountReadyForLiquidation(liquidatorAgent)).length === 0) // no accounts ready for liquidation
 
@@ -149,7 +148,7 @@ describe("Run Scenario", () => {
     )
 
     // make user allegeable for liquidation
-    await oracle.setAssetPrice(collateral, "89007000000000") // asset is configurable and price is configurable
+    await oracle.setAssetPrice(debt[1], "8103549228292030") // asset is configurable and price is configurable, driving the debt price up results in liquidation
     assert((await getAccountReadyForLiquidation(liquidatorAgent)).length === 1) // after changing the asset price, the second account is ready to be liquidated
 
     // this funding is only needed in tests since in actual liquidation the swap will yield more revenue to return the flash loan

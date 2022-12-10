@@ -31,15 +31,6 @@ const findUserCollateral = async (liquidatorAgent, reserves, user) => {
   return reserves[collateralIndex]
 }
 
-const findUserCurrentReserve = async (liquidatorAgent, reserves, user) => {
-  const currentReserveIndex = BNtoNum(
-    await liquidatorAgent.findUserCurrentReserveIndex(user, RESERVE_HARD_LIMIT)
-  )
-  if (currentReserveIndex >= RESERVE_HARD_LIMIT) return null
-
-  return reserves[currentReserveIndex]
-}
-
 const deployLiquidatorAgent = async () => {
   const Swapper = await ethers.getContractFactory("Swapper")
   const LiquidatorAgent = await ethers.getContractFactory("LiquidatorAgent")
@@ -68,7 +59,6 @@ const liquidateAccount = async (liquidatorAgent, account, reserves, amount) => {
     reserves,
     account
   )
-  // const currentReserve = await findUserCurrentReserve(liquidatorAgent, reserves, account) // needed only in tests to trigger liquidation, usually it's the debt asset anyway
   const debt = await findDebtOfUser(liquidatorAgent, reserves, account)
   await liquidatorAgent.liquidateUserWithFlashLoan(
     account,
@@ -102,5 +92,4 @@ module.exports = {
   deployLiquidatorAgent,
   findDebtOfUser,
   findUserCollateral,
-  findUserCurrentReserve,
 }

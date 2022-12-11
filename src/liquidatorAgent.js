@@ -9,6 +9,10 @@ const {
 } = require("./consts")
 const { BNtoNum, asyncFilter } = require("./utils")
 
+// this flag is needed since in the current liquidator agent model, the liquidation may take some time, triggering another liquidation for the same account, resulting in an error 
+// a better model would be listening to events emitted from the LendingPool contract
+let isLiquidationInProcess = false
+
 // user data utils
 const findDebtOfUser = async (liquidatorAgent, reserves, user) => {
   let debt
@@ -77,9 +81,16 @@ const liquidatorLoop = (liquidatorAgent, lendingPool, liquidationCounter, maxAmo
     const reserves = await lendingPool.getReservesList()
 
     for (const account of readyAccounts) {
+      if (isLiquidationInProcess) return // only allow 1 liquidation at a time
+
+      isLiquidationInProcess = true
       console.log(`liquidating ${account}`)
-      await liquidateAccount(liquidatorAgent, account, reserves, maxAmountToLiquidate) // maxAmountToLiquidate is only a testing feature for control
-      liquidationCounter.numOfLiquidationsPerformed += 1 // temp solution, listening to events emitted from the contract is better.
+      try {
+        await liquidateAccount(liquidatorAgent, account, reserves, maxAmountToLiquidate) // maxAmountToLiquidate is only a testing feature for control
+        liquidationCounter.numOfLiquidationsPerformed += 1 // temp solution, listening to events emitted from the contract is better.
+      } finally {
+        isLiquidationInProcess = false // don't leave isLiquidationInProcess as true if something failed
+      }
     }
   }, 5000)
 

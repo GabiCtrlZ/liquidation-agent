@@ -59,3 +59,4 @@ The project is currently under development so some features maybe missing/implem
 5. Convert all to Typescript
 6. Emit events from the `LiquidatorAgent` contract and listening to those events, the `liquidationCounter` is a temp fix
 7. Better error handling
+8. Consider using the GraphQl API for monitoring accounts health and data

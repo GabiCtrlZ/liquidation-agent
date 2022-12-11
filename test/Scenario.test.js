@@ -14,8 +14,9 @@ const {
   liquidateAccount,
   findDebtOfUser,
   findUserCollateral,
+  liquidatorLoop,
 } = require("../src/liquidatorAgent")
-const { BNtoNum } = require("../src/utils")
+const { BNtoNum, sleep } = require("../src/utils")
 
 const resetToBlockNum = (blockNumber) =>
   network.provider.request({
@@ -52,6 +53,7 @@ const fundERC20BrokeUsersForTests = async (brokeUserAddress, token, amount) => {
 describe("Run Scenario", () => {
   let liquidatorAgent
   let oracle
+  let lendingPool
   let reserves
   beforeEach(async () => {
     await resetToBlockNum(16113380) // make sure all tests start from the same point
@@ -71,7 +73,7 @@ describe("Run Scenario", () => {
       "ILendingPoolAddressesProvider",
       LENDING_POOL_ADDRESS_PROVIDER
     )
-    const lendingPool = await ethers.getContractAt("ILendingPool", LENDING_POOL)
+    lendingPool = await ethers.getContractAt("ILendingPool", LENDING_POOL)
     const impersonatedAaveOwner = await ethers.getImpersonatedSigner(AAVE_OWNER)
     reserves = await lendingPool.getReservesList()
 
@@ -136,11 +138,6 @@ describe("Run Scenario", () => {
     // first check
     assert((await getAccountReadyForLiquidation(liquidatorAgent)).length === 0) // no accounts ready for liquidation
 
-    const collateral = await findUserCollateral(
-      liquidatorAgent,
-      reserves,
-      ACCOUNTS_TO_MONITOR[1]
-    )
     const debt = await findDebtOfUser(
       liquidatorAgent,
       reserves,
@@ -164,6 +161,48 @@ describe("Run Scenario", () => {
       reserves,
       "17860923199800825795"
     )
+
+    const debtAfter = await findDebtOfUser(
+      liquidatorAgent,
+      reserves,
+      ACCOUNTS_TO_MONITOR[1]
+    )
+    assert(BNtoNum(debtAfter[0]) < BNtoNum(debt[0])) // user have been liquidated properly
+  })
+
+  it("Scenario3 - testing liquidator interval", async () => {
+    const liquidationCounter = {
+      numOfLiquidationsPerformed: 0
+    }
+
+    const liquidatorInterval = await liquidatorLoop(liquidatorAgent, lendingPool, liquidationCounter, "17860923199800825795")
+
+    // first check
+    assert((await getAccountReadyForLiquidation(liquidatorAgent)).length === 0) // no accounts ready for liquidation
+
+    const debt = await findDebtOfUser(
+      liquidatorAgent,
+      reserves,
+      ACCOUNTS_TO_MONITOR[1]
+    )
+
+    // make user allegeable for liquidation
+    await oracle.setAssetPrice(debt[1], "8103549228292030") // asset is configurable and price is configurable, driving the debt price up results in liquidation
+    assert((await getAccountReadyForLiquidation(liquidatorAgent)).length === 1) // after changing the asset price, the second account is ready to be liquidated
+
+    // this funding is only needed in tests since in actual liquidation the swap will yield more revenue to return the flash loan
+    // a different approach the problem would have been to mock the DEX I'm selling to, but it requires a bit more work than the scope of this test
+    await fundERC20BrokeUsersForTests(
+      liquidatorAgent.address,
+      debt[1],
+      "17860923199800825795"
+    )
+
+    // liquidate account should occur automatically
+    while (liquidationCounter.numOfLiquidationsPerformed === 0) {
+      await sleep(100) // temp solution, waiting for the account to be liquidated
+    }
+    clearInterval(liquidatorInterval)
 
     const debtAfter = await findDebtOfUser(
       liquidatorAgent,

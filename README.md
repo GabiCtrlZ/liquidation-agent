@@ -56,3 +56,6 @@ The project is currently under development so some features maybe missing/implem
 2. Providing a nice API to control the oracle without changing the code
 3. Monitor AAVE events to find accounts eligible for liquidation instead of querying each time
 4. In `findUserCollateralIndex` return an array instead of all reserveIndex that serve as collateral instead of stopping and simply returning the first one found (this was done for POC speed improvements)
+5. Convert all to Typescript
+6. Emit events from the `LiquidatorAgent` contract and listening to those events, the `liquidationCounter` is a temp fix
+7. Better error handling

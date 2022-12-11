@@ -7,11 +7,15 @@ const {
 
 let liquidatorInterval
 
+const liquidationCounter = {
+  numOfLiquidationsPerformed: 0
+}
+
 async function main() {
   const lendingPool = await ethers.getContractAt("ILendingPool", LENDING_POOL)
   const liquidatorAgent = await deployLiquidatorAgent()
 
-  liquidatorInterval = await liquidatorLoop(liquidatorAgent, lendingPool)
+  liquidatorInterval = await liquidatorLoop(liquidatorAgent, lendingPool, liquidationCounter)
 }
 
 main().catch((error) => {

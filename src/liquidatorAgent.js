@@ -68,7 +68,7 @@ const liquidateAccount = async (liquidatorAgent, account, reserves, amount) => {
   )
 }
 
-const liquidatorLoop = (liquidatorAgent, lendingPool) => {
+const liquidatorLoop = (liquidatorAgent, lendingPool, liquidationCounter, maxAmountToLiquidate) => {
   const interval = setInterval(async () => {
     const readyAccounts = await getAccountReadyForLiquidation(liquidatorAgent)
     if (!readyAccounts.length)
@@ -78,7 +78,8 @@ const liquidatorLoop = (liquidatorAgent, lendingPool) => {
 
     for (const account of readyAccounts) {
       console.log(`liquidating ${account}`)
-      await liquidateAccount(liquidatorAgent, account, reserves)
+      await liquidateAccount(liquidatorAgent, account, reserves, maxAmountToLiquidate) // maxAmountToLiquidate is only a testing feature for control
+      liquidationCounter.numOfLiquidationsPerformed += 1 // temp solution, listening to events emitted from the contract is better.
     }
   }, 5000)
 
